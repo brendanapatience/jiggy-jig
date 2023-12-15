@@ -24,7 +24,7 @@ class PuzzlePiece:
         """
         similarity = 0
         for i in range(3):
-            val = cv.compareHist(target_piece_histograms[i], self.histograms[i], cv.HISTCMP_CORREL)
+            val = cv.compareHist(target_piece_histograms[i], self.histograms[i], cv.HISTCMP_INTERSECT)
         similarity += val
         self.average_similarity = similarity/3
 
@@ -36,15 +36,14 @@ def split_puzzle():
     pieces = []
     for col in range(13):
         for row in range(8):
-            piece = REFERENCE_IMAGE[col*P_HEIGHT:col*P_HEIGHT+P_HEIGHT,
-                        row*P_WIDTH:row*P_WIDTH+P_WIDTH]
+            piece = REFERENCE_IMAGE[row*P_HEIGHT:row*P_HEIGHT+P_HEIGHT,
+                        col*P_WIDTH:col*P_WIDTH+P_WIDTH]
 
             #do this so that it removes pieces that are way too small for some reason
-            if (len(piece)) > P_HEIGHT-2:
-                piece_instance = PuzzlePiece(piece, col, row)
-                piece_instance.compare_histograms(target.histograms)
-                pieces.append(piece_instance)
-
+            #if (len(piece)) > P_HEIGHT-2:
+            piece_instance = PuzzlePiece(piece, col, row)
+            piece_instance.compare_histograms(target.histograms)
+            pieces.append(piece_instance)
     return pieces
 
 REFERENCE_IMAGE = cv.imread('reference.png')
@@ -61,14 +60,16 @@ target = cv.resize(TARGET_IMAGE, (P_WIDTH, P_HEIGHT))
 target = PuzzlePiece(target, None, None)
 
 jigsaw_pieces = split_puzzle()
-
+jigsaw_pieces.sort(key=lambda x: x.average_similarity, reverse=True)
 best_match = jigsaw_pieces[0]
-for i,piece in enumerate(jigsaw_pieces):
-    if piece.average_similarity > best_match.average_similarity:
-        best_match = piece
+
 
 cv.imshow('target', target.piece)
-cv.imshow('best match', best_match.piece)
+
+#show top x pieces
+top_x = 3
+for i in range(top_x):
+    cv.imshow(f'match {i}: {jigsaw_pieces[i].average_similarity}', jigsaw_pieces[i].piece)
 
 for i, col in enumerate(COLORS):
     plt.plot(target.histograms[i],color = col)
