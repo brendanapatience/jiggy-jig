@@ -1,14 +1,13 @@
-# pylint: disable=message-name
+import copy
 import numpy as np
 import cv2 as cv
 from matplotlib import pyplot as plt
-import copy
 
 class PuzzlePiece:
     """class to store a puzzle piece's attributes"""
-    def __init__(self, piece, place=None, x=None, y=None):
-        self.piece = piece
-        self.place = place
+    def __init__(self, data, offset=None, x=None, y=None):
+        self.data = data
+        self.offset = offset
         self.x = x
         self.y = y
         self.histograms = self.create_histograms()
@@ -18,7 +17,7 @@ class PuzzlePiece:
         """creates three histograms (one for each B,G,R colour)"""
         histograms = []
         for i in range(3):
-            histogram = cv.calcHist([self.piece],[i],None,[256],[0,256])
+            histogram = cv.calcHist([self.data],[i],None,[256],[0,256])
             histograms.append(histogram)
         return histograms
 
@@ -66,22 +65,22 @@ def arrange_overlay(pieces):
     piece_overlays = copy.deepcopy(pieces)
     alpha = 0.9
     for i,_ in enumerate(pieces):
-        cv.rectangle(piece_overlays[i].piece, (0, 0), (P_WIDTH, P_HEIGHT), YELLOW, 5)
-        piece_overlays[i].piece = cv.addWeighted(piece_overlays[i].piece, alpha,
-                                                 pieces[i].piece, 1 - alpha, 0)
+        cv.rectangle(piece_overlays[i].data, (0, 0), (P_WIDTH, P_HEIGHT), YELLOW, 5)
+        piece_overlays[i].data = cv.addWeighted(piece_overlays[i].data, alpha,
+                                                 pieces[i].data, 1 - alpha, 0)
         if alpha > 0.1:
             alpha -= 0.07
         else:
             alpha = 0.0
 
-    piece_overlays.sort(key=lambda x: x.place)
+    piece_overlays.sort(key=lambda x: x.offset)
     index = 0
     for row in range(N_TALL):
         for col in range(N_WIDE):
             if col == 0:
-                new_row = piece_overlays[index].piece
+                new_row = piece_overlays[index].data
             else:
-                new_row = np.hstack((new_row, piece_overlays[index].piece))
+                new_row = np.hstack((new_row, piece_overlays[index].data))
             index += 1
         if row == 0:
             new_image = copy.deepcopy(new_row)
@@ -97,7 +96,7 @@ def arrange_overlay(pieces):
 # for piece in piece1.png piece2.png piece3.png; do detectpuzzle -r ... -o "result-$piece" refimage.png "$piece"; done
 
 REFERENCE_IMAGE = cv.imread('2_reference.png')
-TARGET_IMAGE = cv.imread('2_pic10.png')
+TARGET_IMAGE = cv.imread('2_pic1.png')
 
 HEIGHT, WIDTH, CHANNELS = REFERENCE_IMAGE.shape
 COLORS = ('b','g','r')
@@ -115,13 +114,13 @@ jigsaw_pieces.sort(key=lambda x: x.average_similarity, reverse=True)
 
 overlay = arrange_overlay(jigsaw_pieces)
 
-#show top x pieces
-# top_x = 11
-# for i in range(top_x):
-#     cv.imshow(f'match {i}: {jigsaw_pieces[i].average_similarity}', jigsaw_pieces[i].piece)
-    #print(jigsaw_pieces[i].average_similarity)
+cv.imshow('target', target.data)
 
-cv.imshow('target', target.piece)
+#show top x pieces
+top_x = 3
+for i in range(top_x):
+    cv.imshow(f'match {i}: {jigsaw_pieces[i].average_similarity}', jigsaw_pieces[i].data)
+
 cv.imshow('overlay', overlay)
 # cv.waitKey(0)
 # cv.destroyAllWindows()
@@ -131,12 +130,11 @@ jigsaw_pieces[0].compare_histograms(target.histograms, verbose=True)
 print('\n9th match:')
 jigsaw_pieces[8].compare_histograms(target.histograms, verbose=True)
 
-fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True)
+fig, axs = plt.subplots(nrows=top_x+1, sharex=True)
 for i, color in enumerate(COLORS):
-    ax1.plot(target.histograms[i], color=color)
-    ax1.set_xlim([0,256])
-# for i, color in enumerate(COLORS):
-#     ax2.plot(jigsaw_pieces[0].histograms[i], color=color)
-# for i, color in enumerate(COLORS):
-#     ax3.plot(jigsaw_pieces[8].histograms[i], color=color)
+    axs[0].plot(target.histograms[i], color=color)
+    axs[0].set_xlim([0,256])
+for j in range(top_x):
+    for i, color in enumerate(COLORS):
+        axs[j+1].plot(jigsaw_pieces[j].histograms[i], color=color)
 plt.show()

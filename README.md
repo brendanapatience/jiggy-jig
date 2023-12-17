@@ -21,8 +21,4 @@ remove global variables from within functions
 have Piece, ReferencePiece(Piece), TargetPiece(Piece)
     make ReferencePiece a dataclass
 
-
 use black
-
-piece -> data
-place -> offset
