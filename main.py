@@ -44,28 +44,28 @@ class PuzzlePiece:
             self.average_similarity = similarity/3
 
 
-def split_puzzle(target):
+def split_puzzle(target, reference_image, n_wide, n_tall, piece_width, piece_height):
     """
     Split the reference puzzle into each of its pieces and create 
     an instance of the PuzzlePiece class for all of them.
     Return: Array of instances of PuzzlePiece
     """
     pieces = []
-    for row in range(N_TALL):
-        for col in range(N_WIDE):
-            piece = REFERENCE_IMAGE[row*P_HEIGHT:row*P_HEIGHT+P_HEIGHT,
-                        col*P_WIDTH:col*P_WIDTH+P_WIDTH]
-            piece_instance = PuzzlePiece(piece, len(pieces), col*P_WIDTH, row*P_HEIGHT)
+    for row in range(n_tall):
+        for col in range(n_wide):
+            piece = reference_image[row*piece_height:row*piece_height+piece_height,
+                        col*piece_width:col*piece_width+piece_width]
+            piece_instance = PuzzlePiece(piece, len(pieces), col*piece_width, row*piece_height)
             piece_instance.compare_histograms(target.histograms)
             pieces.append(piece_instance)
     return pieces
 
 
-def arrange_overlay(pieces):
+def arrange_overlay(pieces, n_wide, n_tall, piece_width, piece_height, overlay_color):
     piece_overlays = copy.deepcopy(pieces)
     alpha = 0.9
     for i,_ in enumerate(pieces):
-        cv.rectangle(piece_overlays[i].data, (0, 0), (P_WIDTH, P_HEIGHT), YELLOW, 5)
+        cv.rectangle(piece_overlays[i].data, (0, 0), (piece_width, piece_height), overlay_color, 5)
         piece_overlays[i].data = cv.addWeighted(piece_overlays[i].data, alpha,
                                                  pieces[i].data, 1 - alpha, 0)
         if alpha > 0.1:
@@ -75,8 +75,8 @@ def arrange_overlay(pieces):
 
     piece_overlays.sort(key=lambda x: x.offset)
     index = 0
-    for row in range(N_TALL):
-        for col in range(N_WIDE):
+    for row in range(n_tall):
+        for col in range(n_wide):
             if col == 0:
                 new_row = piece_overlays[index].data
             else:
@@ -88,53 +88,56 @@ def arrange_overlay(pieces):
             new_image = np.vstack((new_image, new_row))
     return new_image
 
+
+def plot_histograms(pieces, colors):
+    """displays the histograms of the passed pieces"""
+
+    _, axs = plt.subplots(nrows=len(pieces), sharex=True)
+    axs[0].set_xlim([0,256])
+
+    for j, piece in enumerate(pieces):
+        for i, color in enumerate(colors):
+            axs[j].plot(piece.histograms[i], color=color)
+    print("hello")
+
+    plt.show()
+
+
+def main():
+    reference_image = cv.imread('camel_stars/reference.png')
+    target_image = cv.imread('camel_stars/4.png')
+
+    height, width, _ = reference_image.shape
+    colors = ('b','g','r')
+    n_wide = 15     #number of pieces wide
+    n_tall = 7      #number of pieces tall
+    piece_width = width//n_wide
+    piece_height = height//n_tall
+    yellow = (0, 255, 255)
+
+    target = cv.resize(target_image, (piece_width, piece_height))
+    target = PuzzlePiece(target)
+
+    jigsaw_pieces = split_puzzle(target, reference_image, n_wide, n_tall, piece_width, piece_height)
+    jigsaw_pieces.sort(key=lambda x: x.average_similarity, reverse=True)
+
+    overlay = arrange_overlay(jigsaw_pieces, n_wide, n_tall, piece_width, piece_height, yellow)
+
+    cv.imshow('overlay', overlay)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+
+    pieces_of_interest = [target, jigsaw_pieces[0]]
+    plot_histograms(pieces_of_interest, colors)
+
+
+if __name__ == "__main__":
+    main()
+
+### argparsing things
 # $ detectpuzzle [REFIMAGE] --> print help
 # $ detectpuzzle -r 15,7 REFIMAGE PIECE [...]
 # --display OR just make it default
 # -o result.png
 # for piece in piece*.png; do detectpuzzle -r ... -o result-$piece refimage.png $piece; done
 # for piece in piece1.png piece2.png piece3.png; do detectpuzzle -r ... -o "result-$piece" refimage.png "$piece"; done
-
-REFERENCE_IMAGE = cv.imread('2_reference.png')
-TARGET_IMAGE = cv.imread('2_pic1.png')
-
-HEIGHT, WIDTH, CHANNELS = REFERENCE_IMAGE.shape
-COLORS = ('b','g','r')
-N_WIDE = 15     #number of pieces wide
-N_TALL = 7      #number of pieces tall
-P_WIDTH = WIDTH//N_WIDE
-P_HEIGHT = HEIGHT//N_TALL
-YELLOW = (0, 255, 255)
-
-target = cv.resize(TARGET_IMAGE, (P_WIDTH, P_HEIGHT))
-target = PuzzlePiece(target)
-
-jigsaw_pieces = split_puzzle(target)
-jigsaw_pieces.sort(key=lambda x: x.average_similarity, reverse=True)
-
-overlay = arrange_overlay(jigsaw_pieces)
-
-cv.imshow('target', target.data)
-
-#show top x pieces
-top_x = 3
-for i in range(top_x):
-    cv.imshow(f'match {i}: {jigsaw_pieces[i].average_similarity}', jigsaw_pieces[i].data)
-
-cv.imshow('overlay', overlay)
-# cv.waitKey(0)
-# cv.destroyAllWindows()
-
-print('best match:')
-jigsaw_pieces[0].compare_histograms(target.histograms, verbose=True)
-print('\n9th match:')
-jigsaw_pieces[8].compare_histograms(target.histograms, verbose=True)
-
-fig, axs = plt.subplots(nrows=top_x+1, sharex=True)
-for i, color in enumerate(COLORS):
-    axs[0].plot(target.histograms[i], color=color)
-    axs[0].set_xlim([0,256])
-for j in range(top_x):
-    for i, color in enumerate(COLORS):
-        axs[j+1].plot(jigsaw_pieces[j].histograms[i], color=color)
-plt.show()
