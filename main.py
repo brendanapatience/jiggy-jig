@@ -1,3 +1,4 @@
+# pylint: disable=message-name
 import numpy as np
 import cv2 as cv
 from matplotlib import pyplot as plt
@@ -5,7 +6,7 @@ import copy
 
 class PuzzlePiece:
     """class to store a puzzle piece's attributes"""
-    def __init__(self, piece, place, x, y):
+    def __init__(self, piece, place=None, x=None, y=None):
         self.piece = piece
         self.place = place
         self.x = x
@@ -43,6 +44,7 @@ class PuzzlePiece:
                 similarity += val
             self.average_similarity = similarity/3
 
+
 def split_puzzle(target):
     """
     Split the reference puzzle into each of its pieces and create 
@@ -58,6 +60,7 @@ def split_puzzle(target):
             piece_instance.compare_histograms(target.histograms)
             pieces.append(piece_instance)
     return pieces
+
 
 def arrange_overlay(pieces):
     piece_overlays = copy.deepcopy(pieces)
@@ -86,19 +89,26 @@ def arrange_overlay(pieces):
             new_image = np.vstack((new_image, new_row))
     return new_image
 
-REFERENCE_IMAGE = cv.imread('real_puzzle_reference.jpg')
-TARGET_IMAGE = cv.imread('real_piece1.jpg')
+# $ detectpuzzle [REFIMAGE] --> print help
+# $ detectpuzzle -r 15,7 REFIMAGE PIECE [...]
+# --display OR just make it default
+# -o result.png
+# for piece in piece*.png; do detectpuzzle -r ... -o result-$piece refimage.png $piece; done
+# for piece in piece1.png piece2.png piece3.png; do detectpuzzle -r ... -o "result-$piece" refimage.png "$piece"; done
+
+REFERENCE_IMAGE = cv.imread('2_reference.png')
+TARGET_IMAGE = cv.imread('2_pic10.png')
 
 HEIGHT, WIDTH, CHANNELS = REFERENCE_IMAGE.shape
 COLORS = ('b','g','r')
-N_WIDE = 39     #number of pieces wide
-N_TALL = 38      #number of pieces tall
+N_WIDE = 15     #number of pieces wide
+N_TALL = 7      #number of pieces tall
 P_WIDTH = WIDTH//N_WIDE
 P_HEIGHT = HEIGHT//N_TALL
 YELLOW = (0, 255, 255)
 
 target = cv.resize(TARGET_IMAGE, (P_WIDTH, P_HEIGHT))
-target = PuzzlePiece(target, None, None, None)
+target = PuzzlePiece(target)
 
 jigsaw_pieces = split_puzzle(target)
 jigsaw_pieces.sort(key=lambda x: x.average_similarity, reverse=True)
@@ -106,9 +116,9 @@ jigsaw_pieces.sort(key=lambda x: x.average_similarity, reverse=True)
 overlay = arrange_overlay(jigsaw_pieces)
 
 #show top x pieces
-top_x = 11
-for i in range(top_x):
-    cv.imshow(f'match {i}: {jigsaw_pieces[i].average_similarity}', jigsaw_pieces[i].piece)
+# top_x = 11
+# for i in range(top_x):
+#     cv.imshow(f'match {i}: {jigsaw_pieces[i].average_similarity}', jigsaw_pieces[i].piece)
     #print(jigsaw_pieces[i].average_similarity)
 
 cv.imshow('target', target.piece)
@@ -125,8 +135,8 @@ fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True)
 for i, color in enumerate(COLORS):
     ax1.plot(target.histograms[i], color=color)
     ax1.set_xlim([0,256])
-for i, color in enumerate(COLORS):
-    ax2.plot(jigsaw_pieces[0].histograms[i], color=color)
-for i, color in enumerate(COLORS):
-    ax3.plot(jigsaw_pieces[8].histograms[i], color=color)
+# for i, color in enumerate(COLORS):
+#     ax2.plot(jigsaw_pieces[0].histograms[i], color=color)
+# for i, color in enumerate(COLORS):
+#     ax3.plot(jigsaw_pieces[8].histograms[i], color=color)
 plt.show()
