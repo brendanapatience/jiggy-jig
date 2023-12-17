@@ -1,20 +1,22 @@
 # jiggy-jig
 
 ## Online Jigsaw Puzzle Solver
+
+Input a reference image and a target puzzle piece. This solver will detect where the piece should be in the reference image based off color histograms.
+The most likely locations are highlighted in yellow. The brighter the highlight the more confident it is.
+
+You need to also input the number of pieces in a row and in a column.
+
+
+## Todo:
+-implement command line argparse, arguments should be at the end of the main.py file
+
+
+## Photo Source
 Photo taken by: Amanda Carden/Shutterstock.com
 Photo turned into puzzle by: Jigsaw Explorer
 Puzzle name: Christmas Peace Jigsaw Puzzle
 Source: https://www.jigsawexplorer.com/puzzles/christmas-peace-jigsaw-puzzle/
-
-You need to write the name of the reference image file along with a puzzle piece image file in main.py.
-It shows you the reference image with the most likely squares highlighted
-
-Depending on the puzzle, you may need to actually input how you need to split it (how many pieces in a row, and in a column).
-
-## Todo:
--find source of camel_stars image and add it to the readme as well as its folder file
--use command line to run the program (argparse)
-    have the if name == "__main__" with your arguments at the end of the file
 
 
 ## License
