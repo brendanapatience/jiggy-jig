@@ -1,7 +1,10 @@
 # jiggy-jig
 
 ## Online Jigsaw Puzzle Solver
-Source of image: ???
+Photo taken by: Amanda Carden/Shutterstock.com
+Photo turned into puzzle by: Jigsaw Explorer
+Puzzle name: Christmas Peace Jigsaw Puzzle
+Source: https://www.jigsawexplorer.com/puzzles/christmas-peace-jigsaw-puzzle/
 
 You need to write the name of the reference image file along with a puzzle piece image file in main.py.
 It shows you the reference image with the most likely squares highlighted
