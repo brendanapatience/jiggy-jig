@@ -1,50 +1,36 @@
+# SPDX-FileCopyrightText: Copyright (c) 2023 Brendan A. Patience <brendan.patience@mail.mcgill.ca>
+# SPDX-License-Identifier: MIT
+
 import copy
 import numpy as np
 import cv2 as cv
 from matplotlib import pyplot as plt
 
-class PuzzlePiece:
-    """class to store a puzzle piece's attributes"""
-    def __init__(self, data, offset=None, x=None, y=None):
+
+class Piece:
+    def __init__(self, data):
         self.data = data
+        self.histograms = None
+
+    def compare_with(self, target_histograms):
+        self.average_similarity = compare_histograms(self.histograms, target_histograms)
+
+
+class ReferencePiece(Piece):
+    """class to store a puzzle piece's attributes"""
+    def __init__(self, data, offset, x, y):
+        super().__init__(data)
         self.offset = offset
         self.x = x
         self.y = y
-        self.histograms = self.create_histograms()
         self.average_similarity = 0
 
-    def create_histograms(self):
-        """creates three histograms (one for each B,G,R colour)"""
-        histograms = []
-        for i in range(3):
-            histogram = cv.calcHist([self.data],[i],None,[256],[0,256])
-            histograms.append(histogram)
-        return histograms
 
-    def compare_histograms(self, target_piece_histograms, verbose=False):
-        """
-        Compares this piece's histograms with a target piece
-        Some working comparison methods: 
-        cv.HISTCMP_CORREL
-        cv.HISTCMP_INTERSECT (this one seems best for now)        
-        """
-        if verbose:
-            for i in range(3):
-                val = cv.compareHist(target_piece_histograms[i],
-                                    self.histograms[i],
-                                    cv.HISTCMP_INTERSECT)
-                print(val)
-        else:
-            similarity = 0
-            for i in range(3):
-                val = cv.compareHist(target_piece_histograms[i],
-                                    self.histograms[i],
-                                    cv.HISTCMP_INTERSECT)
-                similarity += val
-            self.average_similarity = similarity/3
+class TargetPiece(Piece):
+    pass
 
 
-def split_puzzle(target, reference_image, n_wide, n_tall, piece_width, piece_height):
+def split_puzzle(reference_image, n_wide, n_tall, piece_width, piece_height):
     """
     Split the reference puzzle into each of its pieces and create 
     an instance of the PuzzlePiece class for all of them.
@@ -55,10 +41,41 @@ def split_puzzle(target, reference_image, n_wide, n_tall, piece_width, piece_hei
         for col in range(n_wide):
             piece = reference_image[row*piece_height:row*piece_height+piece_height,
                         col*piece_width:col*piece_width+piece_width]
-            piece_instance = PuzzlePiece(piece, len(pieces), col*piece_width, row*piece_height)
-            piece_instance.compare_histograms(target.histograms)
+            piece_instance = ReferencePiece(piece, len(pieces), col*piece_width, row*piece_height)
             pieces.append(piece_instance)
     return pieces
+
+
+def create_histograms(data):
+    """creates three histograms (one for each B,G,R colour)"""
+    histograms = []
+    for i in range(3):
+        histogram = cv.calcHist([data],[i],None,[256],[0,256])
+        histograms.append(histogram)
+    return histograms
+
+
+def compare_histograms(histograms_1, histograms_2, verbose=False):
+    """
+    Compares this piece's histograms with a target piece
+    Some working comparison methods: 
+    cv.HISTCMP_CORREL
+    cv.HISTCMP_INTERSECT (this one seems best for now)        
+    """
+    if verbose:
+        for i in range(3):
+            val = cv.compareHist(histograms_2[i],
+                                histograms_1[i],
+                                cv.HISTCMP_INTERSECT)
+            print(val)
+    else:
+        similarity = 0
+        for i in range(3):
+            val = cv.compareHist(histograms_2[i],
+                                histograms_1[i],
+                                cv.HISTCMP_INTERSECT)
+            similarity += val
+    return similarity/3
 
 
 def arrange_overlay(pieces, n_wide, n_tall, piece_width, piece_height, overlay_color):
@@ -98,7 +115,6 @@ def plot_histograms(pieces, colors):
     for j, piece in enumerate(pieces):
         for i, color in enumerate(colors):
             axs[j].plot(piece.histograms[i], color=color)
-    print("hello")
 
     plt.show()
 
@@ -116,9 +132,16 @@ def main():
     yellow = (0, 255, 255)
 
     target = cv.resize(target_image, (piece_width, piece_height))
-    target = PuzzlePiece(target)
+    target = TargetPiece(target)
+    target.histograms = create_histograms(target.data)
 
-    jigsaw_pieces = split_puzzle(target, reference_image, n_wide, n_tall, piece_width, piece_height)
+    jigsaw_pieces = split_puzzle(reference_image, n_wide, n_tall, piece_width, piece_height)
+
+    # create histograms for each piece and compare with target piece
+    for piece in jigsaw_pieces:
+        piece.histograms = create_histograms(piece.data)
+        piece.compare_with(target.histograms)
+
     jigsaw_pieces.sort(key=lambda x: x.average_similarity, reverse=True)
 
     overlay = arrange_overlay(jigsaw_pieces, n_wide, n_tall, piece_width, piece_height, yellow)

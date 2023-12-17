@@ -1,0 +1,5 @@
+source of image: 
+size: N/A
+total pieces: N/A
+pieces wides: 15
+pieces tall: 7
