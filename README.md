@@ -5,7 +5,7 @@
 Input a reference image and a target puzzle piece. This solver will detect where the piece should be in the reference image based off color histograms.
 The most likely locations are highlighted in yellow. The brighter the highlight the more confident it is.
 
-You need to also input the number of pieces in a row and in a column.
+You need to also input the number of pieces in a row and in a column. Ensure that the input files are in the same directory as main.py.
 
 Example run:
 python main.py reference.png 8.png --size 15 7

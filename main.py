@@ -28,7 +28,7 @@ class ReferencePiece(Piece):
 
 
 class TargetPiece(Piece):
-    pass
+    """class to instantiate the target piece"""
 
 
 def split_puzzle(reference_image, n_wide, n_tall, piece_width, piece_height):
@@ -48,7 +48,7 @@ def split_puzzle(reference_image, n_wide, n_tall, piece_width, piece_height):
 
 
 def create_histograms(data):
-    """creates three histograms (one for each B,G,R colour)"""
+    """creates three histograms (one for each B,G,R colour) from an image"""
     histograms = []
     for i in range(3):
         histogram = cv.calcHist([data],[i],None,[256],[0,256])
@@ -56,30 +56,27 @@ def create_histograms(data):
     return histograms
 
 
-def compare_histograms(histograms_1, histograms_2, verbose=False):
+def compare_histograms(histograms_1, histograms_2):
     """
     Compares this piece's histograms with a target piece
     Some working comparison methods: 
     cv.HISTCMP_CORREL
-    cv.HISTCMP_INTERSECT (this one seems best for now)        
+    cv.HISTCMP_INTERSECT (recommended)        
     """
-    if verbose:
-        for i in range(3):
-            val = cv.compareHist(histograms_2[i],
-                                histograms_1[i],
-                                cv.HISTCMP_INTERSECT)
-            print(val)
-    else:
-        similarity = 0
-        for i in range(3):
-            val = cv.compareHist(histograms_2[i],
-                                histograms_1[i],
-                                cv.HISTCMP_INTERSECT)
-            similarity += val
+    
+    similarity = 0
+    for i in range(3):
+        val = cv.compareHist(histograms_2[i],
+                            histograms_1[i],
+                            cv.HISTCMP_INTERSECT)
+        similarity += val
     return similarity/3
 
 
-def arrange_overlay(pieces, n_wide, n_tall, piece_width, piece_height, overlay_color):
+def create_piece_overlays(pieces, piece_width, piece_height, overlay_color):
+    """
+    Creates an overlay for each piece in the pieces list.
+    Return: list of pieces (with overlays)"""
     piece_overlays = copy.deepcopy(pieces)
     alpha = 0.9
     for i,_ in enumerate(pieces):
@@ -90,15 +87,20 @@ def arrange_overlay(pieces, n_wide, n_tall, piece_width, piece_height, overlay_c
             alpha -= 0.07
         else:
             alpha = 0.0
+    
+    return piece_overlays
 
-    piece_overlays.sort(key=lambda x: x.offset)
+
+def resconstruct_overlay(pieces, n_wide, n_tall):
+    """From a list of pieces, reconstruct a single image"""
+    pieces.sort(key=lambda x: x.offset)
     index = 0
     for row in range(n_tall):
         for col in range(n_wide):
             if col == 0:
-                new_row = piece_overlays[index].data
+                new_row = pieces[index].data
             else:
-                new_row = np.hstack((new_row, piece_overlays[index].data))
+                new_row = np.hstack((new_row, pieces[index].data))
             index += 1
         if row == 0:
             new_image = copy.deepcopy(new_row)
@@ -144,7 +146,8 @@ def main(reference_file, target_file, puzzle_size):
 
     jigsaw_pieces.sort(key=lambda x: x.average_similarity, reverse=True)
 
-    overlay = arrange_overlay(jigsaw_pieces, n_wide, n_tall, piece_width, piece_height, yellow)
+    piece_overlays = create_piece_overlays(jigsaw_pieces, piece_width, piece_height, yellow)
+    overlay = resconstruct_overlay(piece_overlays, n_wide, n_tall)
 
     cv.imshow('overlay', overlay)
     cv.waitKey(0)
