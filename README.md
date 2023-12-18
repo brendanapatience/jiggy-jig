@@ -7,9 +7,8 @@ The most likely locations are highlighted in yellow. The brighter the highlight 
 
 You need to also input the number of pieces in a row and in a column.
 
-
-## Todo:
--implement command line argparse, arguments should be at the end of the main.py file
+Example run:
+python main.py reference.png 8.png --size 15 7
 
 
 ## Photo Source

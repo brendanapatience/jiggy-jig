@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import copy
+import argparse
 import numpy as np
 import cv2 as cv
 from matplotlib import pyplot as plt
@@ -119,14 +120,13 @@ def plot_histograms(pieces, colors):
     plt.show()
 
 
-def main():
-    reference_image = cv.imread('camel_stars/reference.png')
-    target_image = cv.imread('camel_stars/4.png')
+def main(reference_file, target_file, puzzle_size):
+    reference_image = cv.imread(reference_file)
+    target_image = cv.imread(target_file)
 
     height, width, _ = reference_image.shape
     colors = ('b','g','r')
-    n_wide = 15     #number of pieces wide
-    n_tall = 7      #number of pieces tall
+    n_wide, n_tall = puzzle_size
     piece_width = width//n_wide
     piece_height = height//n_tall
     yellow = (0, 255, 255)
@@ -155,12 +155,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-
-### argparsing things
-# $ detectpuzzle [REFIMAGE] --> print help
-# $ detectpuzzle -r 15,7 REFIMAGE PIECE [...]
-# --display OR just make it default
-# -o result.png
-# for piece in piece*.png; do detectpuzzle -r ... -o result-$piece refimage.png $piece; done
-# for piece in piece1.png piece2.png piece3.png; do detectpuzzle -r ... -o "result-$piece" refimage.png "$piece"; done
+    parser = argparse.ArgumentParser(
+        prog='PuzzleSolver',
+        description='Locates a puzzle piece in a reference image'
+    )
+    parser.add_argument('reference', help='input reference image file')
+    parser.add_argument('target', help='input target piece image file')
+    parser.add_argument('--size', dest='puzzle_size', nargs='+', type=int, default=(15,7),
+                        help='number of pieces horizontally and vertically, \
+                            input as (h,v), default=(15,7)')
+    args = parser.parse_args()
+    main(args.reference, args.target, tuple(args.puzzle_size))
